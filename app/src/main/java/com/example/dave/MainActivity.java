@@ -2,9 +2,14 @@ package com.example.dave;
 
 import static android.content.ContentValues.TAG;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -56,26 +61,45 @@ public class MainActivity extends AppCompatActivity {
         deviceName = getIntent().getStringExtra("deviceName");
         if (deviceName != null){
             // Get the device address to make BT Connection
-            deviceAddress = getIntent().getStringExtra("deviceAddress");
+//            deviceAddress = getIntent().getStringExtra("deviceAddress");
             // Show progress
             progressBar.setVisibility(View.VISIBLE);
             bluethoothConnectButton.setVisibility(View.INVISIBLE);
             bluethoothConnectButton.setEnabled(false);
         }
-
+        ActivityResultLauncher<Intent> enableBluetoothActivityResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                new ActivityResultCallback<ActivityResult>() {
+                    @Override
+                    public void onActivityResult(ActivityResult result) {
+                        if (result.getResultCode() == Activity.RESULT_OK) {
+                            MainActivity.this.notify("Status", "Bluetooth enabled");
+                            connectToDevice();
+                        }
+                        else {
+                            MainActivity.this.notify("Status", "Bluetooth enable failed");
+                        }
+                    }
+                });
+        
         bluethoothConnectButton.setOnClickListener(new View.OnClickListener() {
             @SuppressLint("MissingPermission")
             @Override
             public void onClick(View view) {
                 if (!bluetoothAdapter.isEnabled()) {
                     Intent intentEnableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                    startActivityForResult(intentEnableBluetooth, 0);
-                    MainActivity.this.notify("Status", "Bluetooth enabled");
+                    enableBluetoothActivityResultLauncher.launch(intentEnableBluetooth);
                 }
-                createConnectThread = new CreateConnectThread(bluetoothAdapter, deviceAddress);
-                createConnectThread.start();
+                else {
+                    connectToDevice();
+                }
             }
         });
+    }
+
+    private void connectToDevice() {
+        createConnectThread = new CreateConnectThread(bluetoothAdapter, deviceAddress);
+        createConnectThread.start();
     }
 
 
