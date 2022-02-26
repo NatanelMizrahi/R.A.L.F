@@ -16,6 +16,7 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.dave.R;
 
@@ -97,13 +98,13 @@ public class MainActivity extends AppCompatActivity {
                 // Connect to the remote device through the socket. This call blocks
                 // until it succeeds or throws an exception.
                 mmSocket.connect();
-                Log.e("Status", "Device connected");
+                MainActivity.this.notify("Status", "Device connected");
                 handler.obtainMessage(CONNECTING_STATUS, 1, -1).sendToTarget();
             } catch (IOException connectException) {
                 // Unable to connect; close the socket and return.
                 try {
                     mmSocket.close();
-                    Log.e("Status", "Cannot connect to device");
+                    handleError("Status", "Cannot connect to device", null);
                     handler.obtainMessage(CONNECTING_STATUS, -1, -1).sendToTarget();
                 } catch (IOException closeException) {
                     Log.e(TAG, "Could not close the client socket", closeException);
@@ -127,11 +128,57 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     /* =============================== Thread for Data Transfer =========================================== */
-    public static class ConnectedThread extends Thread {
+    public class ConnectedThread extends Thread {
 
-        public ConnectedThread(BluetoothSocket mmSocket) {
-            throw new UnsupportedOperationException();
+        private final BluetoothSocket mmSocket;
+        private final InputStream mmInStream;
+        private final OutputStream mmOutStream;
+
+        public ConnectedThread(BluetoothSocket socket) {
+            mmSocket = socket;
+            InputStream tmpIn = null;
+            OutputStream tmpOut = null;
+
+            // Get the input and output streams, using temp objects because member streams are final
+            try {
+                tmpIn = socket.getInputStream();
+                tmpOut = socket.getOutputStream();
+            } catch (IOException e) { }
+
+            mmInStream = tmpIn;
+            mmOutStream = tmpOut;
         }
+
+        public void run() {
+
+        }
+
+        /* Call this to send data to the remote device */
+        public void writeCommand(Command command) {
+            byte[] bytes = command.getBytes(); //converts entered String into bytes
+            try {
+                mmOutStream.write(bytes);
+            } catch (IOException e) {
+                handleError("Send Error","Unable to send message",e);
+            }
+        }
+
+        /* Call this from the main activity to shutdown the connection */
+        public void cancel() {
+            try {
+                mmSocket.close();
+            } catch (IOException e) { }
+        }
+    }
+
+    public void notify(String tag, String msg){
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        Log.e(tag, msg);
+    }
+
+    public void handleError(String tag, String msg, Exception e){
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        Log.e(tag, msg, e);
     }
 
 }
