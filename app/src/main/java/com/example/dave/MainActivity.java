@@ -8,6 +8,7 @@ import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -181,4 +182,15 @@ public class MainActivity extends AppCompatActivity {
         Log.e(tag, msg, e);
     }
 
+    @Override
+    public void onBackPressed() {
+        // Terminate Bluetooth Connection and close app
+        if (createConnectThread != null){
+            createConnectThread.cancel();
+        }
+        Intent a = new Intent(Intent.ACTION_MAIN);
+        a.addCategory(Intent.CATEGORY_HOME);
+        a.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(a);
+    }
 }
