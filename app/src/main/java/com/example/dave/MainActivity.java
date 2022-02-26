@@ -16,6 +16,8 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
@@ -43,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
     public static CreateConnectThread createConnectThread;
 
     private final static int CONNECTING_STATUS = 1; // used in bluetooth handler to identify message status
+    private final static int CONNECTING_STATUS_SUCCESS = 1;
+    private final static int CONNECTING_STATUS_FAILURE = -1;
     private final static int MESSAGE_READ = 2; // used in bluetooth handler to identify message update
 
     @Override
@@ -90,6 +94,32 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        handler = new Handler(Looper.getMainLooper()) {
+            @Override
+            public void handleMessage(Message msg){
+                switch (msg.what){
+                    case CONNECTING_STATUS:
+                        switch(msg.arg1){
+                            case CONNECTING_STATUS_SUCCESS:
+                                MainActivity.this.notify("Status", "Device connected");
+                                progressBar.setVisibility(View.GONE);
+                                bluethoothConnectButton.setEnabled(true);
+                                forwardButton.setEnabled(true);
+                                break;
+                            case CONNECTING_STATUS_FAILURE:
+                                MainActivity.this.notify("Status", "Device fails to connect");
+                                progressBar.setVisibility(View.GONE);
+                                bluethoothConnectButton.setVisibility(View.VISIBLE);
+                                bluethoothConnectButton.setEnabled(true);
+                                break;
+                        }
+                        break;
+
+                }
+            }
+        };
+
     }
 
     private void connectToDevice(String address) {
@@ -133,14 +163,14 @@ public class MainActivity extends AppCompatActivity {
                 // Connect to the remote device through the socket. This call blocks
                 // until it succeeds or throws an exception.
                 mmSocket.connect();
-                MainActivity.this.notify("Status", "Device connected");
-                handler.obtainMessage(CONNECTING_STATUS, 1, -1).sendToTarget();
+//                MainActivity.this.notify("Status", "Device connected");
+                handler.obtainMessage(CONNECTING_STATUS, CONNECTING_STATUS_SUCCESS, 0).sendToTarget();
             } catch (IOException connectException) {
                 // Unable to connect; close the socket and return.
                 try {
                     mmSocket.close();
                     handleError("Status", "Cannot connect to device", null);
-                    handler.obtainMessage(CONNECTING_STATUS, -1, -1).sendToTarget();
+                    handler.obtainMessage(CONNECTING_STATUS, CONNECTING_STATUS_FAILURE, CONNECTING_STATUS_FAILURE).sendToTarget();
                 } catch (IOException closeException) {
                     Log.e(TAG, "Could not close the client socket", closeException);
                 }
@@ -207,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void notify(String tag, String msg){
-//        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
         Log.e(tag, msg);
     }
 
