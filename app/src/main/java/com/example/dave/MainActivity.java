@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
     private BluetoothAdapter bluetoothAdapter;
     private String deviceName = null;
-    private String deviceAddress;
+    private String deviceAddress = "98:D3:71:F9:D1:C5";
 
     public static Handler handler;
     public static BluetoothSocket mmSocket;
@@ -60,18 +60,33 @@ public class MainActivity extends AppCompatActivity {
             progressBar.setVisibility(View.VISIBLE);
             bluethoothConnectButton.setVisibility(View.INVISIBLE);
             bluethoothConnectButton.setEnabled(false);
-
-            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-            createConnectThread = new CreateConnectThread(bluetoothAdapter,deviceAddress);
-            createConnectThread.start();
         }
+
+        bluethoothConnectButton.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("MissingPermission")
+            @Override
+            public void onClick(View view) {
+                if (!bluetoothAdapter.isEnabled()) {
+                    Intent intentEnableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(intentEnableBluetooth, 0);
+                    MainActivity.this.notify("Status", "Bluetooth enabled");
+                }
+                createConnectThread = new CreateConnectThread(bluetoothAdapter, deviceAddress);
+                createConnectThread.start();
+            }
+        });
     }
 
 
     private class CreateConnectThread extends Thread {
         @SuppressLint("MissingPermission")
         public CreateConnectThread(BluetoothAdapter bluetoothAdapter, String address) {
-            BluetoothDevice bluetoothDevice = bluetoothAdapter.getRemoteDevice(address);
+            BluetoothDevice bluetoothDevice = null;
+            try {
+                bluetoothDevice = bluetoothAdapter.getRemoteDevice(address);
+            } catch (IllegalArgumentException e) {
+                handleError("Status", "Invalid address: " + address, e);
+            }
             BluetoothSocket tmp = null;
             UUID uuid = bluetoothDevice.getUuids()[0].getUuid();
 
