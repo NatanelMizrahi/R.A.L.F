@@ -18,25 +18,24 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.dave.R;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Set;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
     private BluetoothAdapter bluetoothAdapter;
-    private String deviceName = null;
-    private String deviceAddress = "98:D3:71:F9:D1:C5";
+    private String deviceAddress;
+    private String ARDUINO_DEVICE_NAME = "HC-06";
 
     public static Handler handler;
     public static BluetoothSocket mmSocket;
@@ -57,16 +56,7 @@ public class MainActivity extends AppCompatActivity {
         final ImageButton forwardButton = findViewById(R.id.forwardButton);
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        // If a bluetooth device has been selected from SelectDeviceActivity
-        deviceName = getIntent().getStringExtra("deviceName");
-        if (deviceName != null){
-            // Get the device address to make BT Connection
-//            deviceAddress = getIntent().getStringExtra("deviceAddress");
-            // Show progress
-            progressBar.setVisibility(View.VISIBLE);
-            bluethoothConnectButton.setVisibility(View.INVISIBLE);
-            bluethoothConnectButton.setEnabled(false);
-        }
+
         ActivityResultLauncher<Intent> enableBluetoothActivityResultLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 new ActivityResultCallback<ActivityResult>() {
@@ -74,34 +64,38 @@ public class MainActivity extends AppCompatActivity {
                     public void onActivityResult(ActivityResult result) {
                         if (result.getResultCode() == Activity.RESULT_OK) {
                             MainActivity.this.notify("Status", "Bluetooth enabled");
-                            connectToDevice();
+                            connectToArduino();
                         }
                         else {
                             MainActivity.this.notify("Status", "Bluetooth enable failed");
                         }
                     }
                 });
-        
+
         bluethoothConnectButton.setOnClickListener(new View.OnClickListener() {
             @SuppressLint("MissingPermission")
             @Override
             public void onClick(View view) {
+                // Show progress
+                progressBar.setVisibility(View.VISIBLE);
+                bluethoothConnectButton.setVisibility(View.GONE);
+                bluethoothConnectButton.setEnabled(false);
+
                 if (!bluetoothAdapter.isEnabled()) {
                     Intent intentEnableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                     enableBluetoothActivityResultLauncher.launch(intentEnableBluetooth);
                 }
                 else {
-                    connectToDevice();
+                    connectToArduino();
                 }
             }
         });
     }
 
-    private void connectToDevice() {
+    private void connectToDevice(String address) {
         createConnectThread = new CreateConnectThread(bluetoothAdapter, deviceAddress);
         createConnectThread.start();
     }
-
 
     private class CreateConnectThread extends Thread {
         @SuppressLint("MissingPermission")
@@ -213,13 +207,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void notify(String tag, String msg){
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
         Log.e(tag, msg);
     }
 
     public void handleError(String tag, String msg, Exception e){
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+//      Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
         Log.e(tag, msg, e);
+    }
+
+    @SuppressLint("MissingPermission")
+    private void connectToArduino() {
+         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+        if (pairedDevices.size() > 0) {
+            // There are paired devices. Get the name and address of each paired device.
+            for (BluetoothDevice device : pairedDevices) {
+                String deviceName = device.getName();
+                if (deviceName.equals(ARDUINO_DEVICE_NAME)) {
+                     deviceAddress = device.getAddress();
+                     notify("Connection","Connecting to " + deviceName + "@"+ deviceAddress);
+                     connectToDevice(deviceAddress);
+                     return;
+                }
+            }
+        }
+        notify("Connection","Activate Bluetooth and pair Bluetooth device: " + ARDUINO_DEVICE_NAME);
     }
 
     @Override
