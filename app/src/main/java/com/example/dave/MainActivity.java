@@ -66,22 +66,31 @@ public class MainActivity extends AppCompatActivity {
         final ImageButton leftButton = findViewById(R.id.leftButton);
         final ImageButton rightButton = findViewById(R.id.RightButton);
 
-        forwardButton.setEnabled(false);
-//        buttonCommandMap = new HashMap<ImageButton, Command>();
+        buttonCommandMap = new HashMap<ImageButton, Command>();
 
-        forwardButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if(event.getAction() == MotionEvent.ACTION_DOWN){
-                    connectedThread.writeCommand(Command.CreateMoveCommand(Command.Direction.STRAIGHT));
-                }
-                if(event.getAction() == MotionEvent.ACTION_UP){
-                    connectedThread.writeCommand(Command.CreateStopCommand());
-                }
-                return true;
-            }
+        buttonCommandMap.put(forwardButton, Command.CreateMoveCommand(Command.Direction.STRAIGHT));
+        buttonCommandMap.put(backButton, Command.CreateMoveCommand(Command.Direction.BACK));
+        buttonCommandMap.put(leftButton, Command.CreateMoveCommand(Command.Direction.LEFT));
+        buttonCommandMap.put(rightButton, Command.CreateMoveCommand(Command.Direction.RIGHT));
 
-        });
+        for(Map.Entry<ImageButton, Command> buttonEntry : buttonCommandMap.entrySet()) {
+            ImageButton button = buttonEntry.getKey();
+            Command command = buttonEntry.getValue();
+            button.setEnabled(false);
+
+            button.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                        connectedThread.writeCommand(command);
+                    }
+                    if (event.getAction() == MotionEvent.ACTION_UP) {
+                        connectedThread.writeCommand(Command.CreateStopCommand());
+                    }
+                    return true;
+                }
+            });
+        }
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -128,8 +137,10 @@ public class MainActivity extends AppCompatActivity {
                             case CONNECTING_STATUS_SUCCESS:
                                 MainActivity.this.notify("Status", "Device connected");
                                 progressBar.setVisibility(View.GONE);
-                                bluethoothConnectButton.setEnabled(true);
-                                forwardButton.setEnabled(true);
+                                bluethoothConnectButton.setEnabled(false);
+                                for (ImageButton imageButton: buttonCommandMap.keySet()) {
+                                    imageButton.setEnabled(true);
+                                }
                                 break;
                             case CONNECTING_STATUS_FAILURE:
                                 MainActivity.this.notify("Status", "Device fails to connect");
@@ -246,6 +257,7 @@ public class MainActivity extends AppCompatActivity {
         public void writeCommand(Command command) {
             byte[] bytes = command.getBytes(); //converts entered String into bytes
             try {
+                Log.e("a", "a");
                 mmOutStream.write(bytes);
             } catch (IOException e) {
                 handleError("Send Error","Unable to send message",e);

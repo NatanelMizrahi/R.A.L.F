@@ -12,6 +12,7 @@ typedef enum {
     STOP,
     SET_MODE
 } command_type_t;
+
 typedef enum {
     ANARCHY,
     REMOTE_CONTROL
@@ -24,8 +25,9 @@ typedef enum {
 } direction_t;
     
 typedef struct {
-    short direction;
-    short duration;
+    unsigned char command_type;
+    unsigned char op_code;
+    short value;
 } cmd_t;
 
 int cmdSize = sizeof(cmd_t);
@@ -56,8 +58,11 @@ void startMove(int _direction) {
 }
 
 void stopMove(int _direction) {
-  if(_direction & DIRECTION_LEFT) digitalWrite(leftCtrlPin, LOW);
-  if(_direction & DIRECTION_RIGHT) digitalWrite(rightCtrlPin, LOW);
+//  if(_direction & DIRECTION_LEFT) digitalWrite(leftCtrlPin, LOW);
+//  if(_direction & DIRECTION_RIGHT) digitalWrite(rightCtrlPin, LOW);
+  digitalWrite(leftCtrlPin, LOW);
+  digitalWrite(rightCtrlPin, LOW);
+
 }
 
 void move(int _direction, int duration) {
@@ -111,13 +116,22 @@ void checkAndAvoidObstacles() {
 void readCommand() {
   if (Serial.available() > 0) {
     cmd_t command;
+//    char buffer[40];
     Serial.readBytes((char*)&command, cmdSize);
-    Serial.println((*(int*)&command), BIN);
-    Serial.println(command.direction, DEC);  
-    Serial.println(command.duration, DEC);  
-
-    if (mode != ANARCHY_MODE) {
-      move(command.direction, command.duration|0b1);
+//    sprintf(buffer, "[buffer: %x][command_type: %d][op_code: %d][value: %d]", (*(int*)&command), command.command_type, command.op_code, command.value);
+//    Serial.println(buffer);
+    switch (command.command_type) {
+        case MOVE:
+             stopMove(0);
+             delayMicroseconds(5);
+             startMove(command.op_code);
+             break;
+        case STOP:
+            stopMove(command.op_code);
+            break;
+        case SET_MODE:
+            mode = command.op_code;
+            break;
     }
   }
 }

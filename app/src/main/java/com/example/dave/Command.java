@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 public class Command {
     public enum CommandType {
         MOVE,
+        STOP,
         SET_MODE
     }
     public enum OperationMode {
@@ -12,9 +13,10 @@ public class Command {
         REMOTE_CONTROL
     }
     public enum Direction {
-        LEFT,
-        RIGHT,
-        STRAIGHT
+        BACK,    // 0b00
+        LEFT,    // 0b01
+        RIGHT,   // 0b10
+        STRAIGHT // 0b11
     }
 
     private CommandType commandType;
@@ -43,7 +45,11 @@ public class Command {
         return new Command(CommandType.SET_MODE, (byte) OperationMode.ANARCHY.ordinal(), 0);
     }
 
-    public static Command CreateMoveCommand(Direction d, int duration){
-        return new Command(CommandType.MOVE, (byte) d.ordinal(), duration);
+    public static Command CreateMoveCommand(Direction d){
+        return new Command(CommandType.MOVE, (byte) d.ordinal(), 0);
+    }
+
+    public static Command CreateStopCommand(){
+        return new Command(CommandType.STOP, (byte) 0, 0);
     }
 }
