@@ -19,6 +19,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -30,6 +31,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -49,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private final static int CONNECTING_STATUS_FAILURE = -1;
     private final static int MESSAGE_READ = 2; // used in bluetooth handler to identify message update
 
+    private Map<ImageButton, Command> buttonCommandMap;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,6 +62,26 @@ public class MainActivity extends AppCompatActivity {
         final ProgressBar progressBar = findViewById(R.id.progressBar);
         final TextView connectedText = findViewById(R.id.connectedText);
         final ImageButton forwardButton = findViewById(R.id.forwardButton);
+        final ImageButton backButton = findViewById(R.id.backButton);
+        final ImageButton leftButton = findViewById(R.id.leftButton);
+        final ImageButton rightButton = findViewById(R.id.RightButton);
+
+        forwardButton.setEnabled(false);
+//        buttonCommandMap = new HashMap<ImageButton, Command>();
+
+        forwardButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN){
+                    connectedThread.writeCommand(Command.CreateMoveCommand(Command.Direction.STRAIGHT));
+                }
+                if(event.getAction() == MotionEvent.ACTION_UP){
+                    connectedThread.writeCommand(Command.CreateStopCommand());
+                }
+                return true;
+            }
+
+        });
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
