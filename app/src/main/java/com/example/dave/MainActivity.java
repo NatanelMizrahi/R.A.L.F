@@ -21,8 +21,10 @@ import android.os.Message;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -61,10 +63,24 @@ public class MainActivity extends AppCompatActivity {
         final FloatingActionButton bluethoothConnectButton = findViewById(R.id.bluethoothConnectButton);
         final ProgressBar progressBar = findViewById(R.id.progressBar);
         final TextView connectedText = findViewById(R.id.connectedText);
+
         final ImageButton forwardButton = findViewById(R.id.forwardButton);
         final ImageButton backButton = findViewById(R.id.backButton);
         final ImageButton leftButton = findViewById(R.id.leftButton);
         final ImageButton rightButton = findViewById(R.id.RightButton);
+
+        final Switch modeToggleSwitch = findViewById(R.id.modeToggleSwitch);
+        modeToggleSwitch.setEnabled(false);
+
+        modeToggleSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                connectedThread.writeCommand(isChecked ?
+                        Command.CreateSetModeAnarchyCommand() :
+                        Command.CreateSetModeRemoteControlCommand()
+
+                );
+            }
+        });
 
         buttonCommandMap = new HashMap<ImageButton, Command>();
 
@@ -138,6 +154,8 @@ public class MainActivity extends AppCompatActivity {
                                 MainActivity.this.notify("Status", "Device connected");
                                 progressBar.setVisibility(View.GONE);
                                 bluethoothConnectButton.setEnabled(false);
+                                modeToggleSwitch.setEnabled(true);
+                                connectedText.setVisibility(View.VISIBLE);
                                 for (ImageButton imageButton: buttonCommandMap.keySet()) {
                                     imageButton.setEnabled(true);
                                 }

@@ -39,51 +39,69 @@
         android:id="@+id/connectedText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="12dp"
         android:text="Connected"
-        android:visibility="invisible"
+        android:textAppearance="@style/TextAppearance.AppCompat.Body2"
+        android:visibility="gone"
         app:layout_constraintStart_toEndOf="@+id/bluethoothConnectButton"
-        tools:layout_editor_absoluteY="35dp" />
-
-    <ImageButton
-        android:id="@+id/forwardButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@null"
-        android:rotationX="180"
-        android:src="@android:drawable/ic_menu_more"
-        app:layout_constraintBottom_toTopOf="@+id/leftButton"
-        app:layout_constraintEnd_toStartOf="@+id/RightButton"
-        app:layout_constraintStart_toEndOf="@+id/leftButton" />
+        tools:layout_editor_absoluteY="16dp" />
 
     <ImageButton
         android:id="@+id/backButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="64dp"
-        android:layout_marginBottom="24dp"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="32dp"
         android:background="@null"
+        android:scaleType="fitXY"
         android:src="@android:drawable/ic_menu_more"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageButton
+        android:id="@+id/forwardButton"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:background="@null"
+        android:rotationX="180"
+        android:scaleType="fitXY"
+        android:src="@android:drawable/ic_menu_more"
+        app:layout_constraintBottom_toTopOf="@+id/RightButton"
+        app:layout_constraintEnd_toStartOf="@+id/RightButton"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toEndOf="@+id/leftButton" />
+
+    <ImageButton
+        android:id="@+id/leftButton"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:background="@null"
+        android:rotationY="180"
+        android:scaleType="fitXY"
+        android:src="@android:drawable/ic_menu_rotate"
+        app:layout_constraintBottom_toTopOf="@+id/backButton"
+        app:layout_constraintEnd_toStartOf="@+id/backButton" />
 
     <ImageButton
         android:id="@+id/RightButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
         android:background="@null"
+        android:scaleType="fitXY"
         android:src="@android:drawable/ic_menu_rotate"
         app:layout_constraintBottom_toTopOf="@+id/backButton"
         app:layout_constraintStart_toEndOf="@+id/backButton" />
 
-    <ImageButton
-        android:id="@+id/leftButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@null"
-        android:rotationY="180"
-        android:src="@android:drawable/ic_menu_rotate"
-        app:layout_constraintBottom_toTopOf="@+id/backButton"
-        app:layout_constraintEnd_toStartOf="@+id/backButton" />
+    <Switch
+        android:id="@+id/modeToggleSwitch"
+        android:layout_width="129dp"
+        android:layout_height="56dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:text="Anarchy Mode"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

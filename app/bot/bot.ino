@@ -1,6 +1,6 @@
 
-#define ANARCHY_MODE 1
-#define REMOTE_CONTROL_MODE 2
+#define ANARCHY_MODE 0
+#define REMOTE_CONTROL_MODE 1
 
 #define DIRECTION_UNSET 0b00
 #define DIRECTION_LEFT  0b01
@@ -121,16 +121,20 @@ void readCommand() {
 //    sprintf(buffer, "[buffer: %x][command_type: %d][op_code: %d][value: %d]", (*(int*)&command), command.command_type, command.op_code, command.value);
 //    Serial.println(buffer);
     switch (command.command_type) {
+        case SET_MODE:
+            mode = command.op_code;
+            break;
         case MOVE:
+             if (mode == ANARCHY_MODE)
+                return; 
              stopMove(0);
              delayMicroseconds(5);
              startMove(command.op_code);
              break;
         case STOP:
+            if (mode == ANARCHY_MODE)
+                return; 
             stopMove(command.op_code);
-            break;
-        case SET_MODE:
-            mode = command.op_code;
             break;
     }
   }
@@ -146,14 +150,10 @@ void setup() {
 
 }
 
-// the loop function runs over and over again forever
 void loop() {
-  
   if (mode == ANARCHY_MODE) {
     checkAndAvoidObstacles();
     moveRandomly();
   }
-  else {
-    readCommand();
-  }
+  readCommand();
 }
