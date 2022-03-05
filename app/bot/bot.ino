@@ -1,7 +1,9 @@
 typedef enum {
     MOVE,
     STOP,
-    SET_MODE
+    SET_MODE,
+    SET_ALARM,
+    DISABLE_ALARM
 } command_type_t;
 
 typedef struct {
@@ -35,13 +37,15 @@ int hasObstacle = 0;
 long distCentimeters;
 long durationUs;
 
-int avoidObstacleTurnDuration = 500;
+int avoidObstacleTurnDuration = 700;
 int avoidObstacleDirection;
 long minAllowedDistCm = 20;
 
 int mode = REMOTE_CONTROL_MODE;
 //int mode = ANARCHY_MODE;
 
+int alarmSet = 0;
+unsigned long alarmTimeMillis;
 
 /*
 // Each motor (left/right) has the following control sub-circuit
@@ -119,13 +123,10 @@ void write_direction_pins(bit_vec_t ctrl_pin_bit_vector, int val){
             digitalWrite(pin, val);
         }
     }
-    Serial.println();
 }
 
 
 void startMove(int _direction) {
-  Serial.println(_direction,DEC);
-  Serial.println(direction_to_bit_vector[_direction],BIN);
   write_direction_pins(direction_to_bit_vector[_direction], HIGH);
 }
 
@@ -148,7 +149,7 @@ void moveRandomly(){
 
 void avoidObstacle(){
   hasObstacle = 1;
-//  move(avoidObstacleDirection, avoidObstacleTurnDuration);
+  move(avoidObstacleDirection, avoidObstacleTurnDuration);
 }
 
 void resetObstacleState () {
@@ -204,8 +205,34 @@ void readCommand() {
                 return;
             stopMove();
             break;
+        case SET_ALARM:
+            setAlarm(command.value);
+            break;
+        case DISABLE_ALARM:
+            disableAlarm();
+            break;
     }
   }
+}
+
+void setAlarm(short alarmDeltaMinutes){
+  alarmTimeMillis = millis() + (unsigned long)(alarmDeltaMinutes) * 60 * 1000;
+  alarmSet = 1;
+}
+void disableAlarm(){
+  alarmSet = 0;
+}
+void activateAlarm(){
+  alarmSet = 0;
+  mode = ANARCHY_MODE;
+}
+
+void checkAlarm(){
+    unsigned long currTimeMillis = millis();
+    if (currTimeMillis > alarmTimeMillis) {
+      activateAlarm();
+    }
+    delay(2000);
 }
 
 void setup() {
@@ -217,6 +244,9 @@ void setup() {
 }
 
 void loop() {
+  if (alarmSet){
+    checkAlarm();
+  }
   if (mode == ANARCHY_MODE) {
     checkAndAvoidObstacles();
     moveRandomly();

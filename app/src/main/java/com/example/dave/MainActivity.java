@@ -26,6 +26,7 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -60,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        final TimePicker alarmTimePicker = findViewById(R.id.alarmTimePicker);
         final FloatingActionButton bluethoothConnectButton = findViewById(R.id.bluethoothConnectButton);
         final ProgressBar progressBar = findViewById(R.id.progressBar);
         final TextView connectedText = findViewById(R.id.connectedText);
@@ -70,7 +72,10 @@ public class MainActivity extends AppCompatActivity {
         final ImageButton rightButton = findViewById(R.id.RightButton);
 
         final Switch modeToggleSwitch = findViewById(R.id.modeToggleSwitch);
+        final Switch alarmToggleSwitch = findViewById(R.id.alarmToggleSwitch);
+
         modeToggleSwitch.setEnabled(false);
+        alarmToggleSwitch.setEnabled(false);
 
         modeToggleSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -107,6 +112,27 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+
+        alarmToggleSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                Command command = isChecked ?
+                        Command.CreateSetAlarmCommand(
+                                alarmTimePicker.getCurrentHour(),
+                                alarmTimePicker.getCurrentMinute()
+                        ):
+                        Command.CreateDisableAlarmCommand();
+
+                connectedThread.writeCommand(command);
+                if (isChecked){
+                    String hours = command.getValue() / 60 > 0 ? command.getValue() / 60 + "hours and " : "";
+                    String minutes = command.getValue() % 60 + " minutes";
+                    MainActivity.this.notify("ALARM_STATUS", "Alarm set for " + hours + minutes);
+                }
+            }
+        });
+
+        alarmTimePicker.setIs24HourView(true);
+        alarmTimePicker.setEnabled(false);
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -155,6 +181,8 @@ public class MainActivity extends AppCompatActivity {
                                 progressBar.setVisibility(View.GONE);
                                 bluethoothConnectButton.setEnabled(false);
                                 modeToggleSwitch.setEnabled(true);
+                                alarmToggleSwitch.setEnabled(true);
+                                alarmTimePicker.setEnabled(true);
                                 connectedText.setVisibility(View.VISIBLE);
                                 for (ImageButton imageButton: buttonCommandMap.keySet()) {
                                     imageButton.setEnabled(true);
@@ -275,7 +303,6 @@ public class MainActivity extends AppCompatActivity {
         public void writeCommand(Command command) {
             byte[] bytes = command.getBytes(); //converts entered String into bytes
             try {
-                Log.e("a", "a");
                 mmOutStream.write(bytes);
             } catch (IOException e) {
                 handleError("Send Error","Unable to send message",e);
