@@ -13,10 +13,10 @@ public class Command {
         REMOTE_CONTROL
     }
     public enum Direction {
-        BACK,    // 0b00
-        LEFT,    // 0b01
-        RIGHT,   // 0b10
-        STRAIGHT // 0b11
+        FORWARD, // 0
+        LEFT,    // 1
+        RIGHT,   // 2
+        BACK,    // 3
     }
 
     private CommandType commandType;
