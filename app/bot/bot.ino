@@ -249,7 +249,6 @@ void readCommand() {
 void setAlarm(short alarmDeltaMinutes){
   alarmTimeMillis = millis() + (unsigned long)(alarmDeltaMinutes) * 60 * 1000;
   alarmSet = 1;
-  Serial.println(alarmDeltaMinutes);
 }
 void disableAlarm(){
   alarmSet = 0;
@@ -265,7 +264,6 @@ void checkAlarm(){
       return;
     }
     unsigned long currTimeMillis = millis();
-    Serial.println(22);
     if (currTimeMillis > alarmTimeMillis) {
       activateAlarm();
     }
