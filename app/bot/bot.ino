@@ -1,4 +1,11 @@
-#include <Tone.h>
+
+#include "theme.h"
+
+Playtune p;
+
+int tone_chan1_pin = 13;
+int tone_chan2_pin = A1;
+int tone_chan3_pin = A3;
 
 typedef enum {
     MOVE,
@@ -28,22 +35,6 @@ typedef enum {
     BACK = 3,
 } direction_t;
 
-Tone notePlayer[2];
-
-//int notes[] = { NOTE_A3,
-//                NOTE_B3,
-//                NOTE_C4,
-//                NOTE_D4,
-//                NOTE_E4,
-//                NOTE_F4,
-//                NOTE_G4 };
-
-
-int notes[] = {
- 15, 25, 31,33,35,37,39,41,44,46,49,52,55,58,62,65,69,73,78,82,87,93,98,104,110,117,123,131,139,147,156,165,175,185,196,208,220,233,247,262,277,294,311,330,349,370,392,415,440,466,494,523,554,587,622,659,698,740,784,831,880,932,988,1047,1109,1175,1245,1319,1397,1480,1568,1661,1760,1865,1976,2093,2217,2349,2489,2637,2794,2960,3136,3322,3520,3729,3951,4186,4435,4699,4978
-};
-
-#define N_NOTES 70
 
 int speakerPin = 13;
 
@@ -65,6 +56,8 @@ int mode = REMOTE_CONTROL_MODE;
 //int mode = ANARCHY_MODE;
 
 int alarmSet = 0;
+int ignoreCommands = 0;
+
 unsigned long alarmTimeMillis;
 
 /*
@@ -106,9 +99,9 @@ bit_vec_t CTRL_PIN_RIGHT_C3 = 1 << (CTRL_PIN_OFFSET_RIGHT_MOTOR + 3);
 // initialized in init_direction_pins
 bit_vec_t DIRECTION_CTRL_PINS;
 bit_vec_t   DIRECTION_FORWARD_CTRL_PINS,
-			DIRECTION_BACK_CTRL_PINS,
-			DIRECTION_LEFT_CTRL_PINS,
-			DIRECTION_RIGHT_CTRL_PINS;
+      DIRECTION_BACK_CTRL_PINS,
+      DIRECTION_LEFT_CTRL_PINS,
+      DIRECTION_RIGHT_CTRL_PINS;
 
 bit_vec_t direction_to_bit_vector[4];
 
@@ -156,7 +149,7 @@ void stopMove() {
 
 void move(int _direction, int duration) {
   startMove(_direction);
-  delay(duration);
+  smartDelay(duration);
   stopMove();
 }
 
@@ -202,16 +195,34 @@ void checkAndAvoidObstacles() {
   }
 }
 
+void smartDelay(int ms){
+  if (mode == ANARCHY_MODE){
+      p.tune_delay(ms);    
+  } else {
+      delay(ms);
+  }
+}
+void set_mode(operation_mode_t _mode){
+   stopMove();
+   if (_mode == ANARCHY_MODE){
+      init_tone_channels();
+   } else {
+      p.tune_stopscore();
+      p.tune_stopchans();
+   }
+   mode = _mode;
+}
+
 void readCommand() {
-  if (Serial.available() > 0) {
+  if (Serial.available() > 0 && !ignoreCommands) {
     cmd_t command;
-//    char buffer[40];
     Serial.readBytes((char*)&command, cmdSize);
+//    char buffer[40];
 //    sprintf(buffer, "[buffer: %x][command_type: %d][op_code: %d][value: %d]", (*(int*)&command), command.command_type, command.op_code, command.value);
 //    Serial.println(buffer);
     switch (command.command_type) {
         case SET_MODE:
-            mode = command.op_code;
+            set_mode(command.op_code);
             break;
         case MOVE:
              if (mode == ANARCHY_MODE)
@@ -238,63 +249,61 @@ void readCommand() {
 void setAlarm(short alarmDeltaMinutes){
   alarmTimeMillis = millis() + (unsigned long)(alarmDeltaMinutes) * 60 * 1000;
   alarmSet = 1;
+  Serial.println(alarmDeltaMinutes);
 }
 void disableAlarm(){
   alarmSet = 0;
 }
 void activateAlarm(){
   alarmSet = 0;
-  mode = ANARCHY_MODE;
+  ignoreCommands = 1;
+  set_mode(ANARCHY_MODE);
 }
 
 void checkAlarm(){
+    if (!alarmSet){
+      return;
+    }
     unsigned long currTimeMillis = millis();
+    Serial.println(22);
     if (currTimeMillis > alarmTimeMillis) {
       activateAlarm();
     }
-    delay(2000);
+    smartDelay(2000);
+}
+
+void init_tone_channels(){
+    p.tune_initchan(tone_chan1_pin);
+    p.tune_initchan(tone_chan2_pin);
+    p.tune_initchan(tone_chan3_pin);
 }
 
 
 void setup() {
   init_direction_pins();
-
+  // init_tone_channels();
+  
   pinMode(sensorTrigPin, OUTPUT);
   pinMode(sensorEchoPin, INPUT);
   pinMode(speakerPin, OUTPUT);
 
-  notePlayer[0].begin(13);
-  notePlayer[1].begin(A1);
   Serial.begin(9600);
 }
 
-int i = 0;
-int randNote;
-int randIter;
-
-void playNightmareFuel()
-{
-  int randNote = random(N_NOTES);
-  notePlayer[0].play(notes[random(N_NOTES)]);
-  randIter = random(10) * 2;
-  while (--randIter > 0) {
-      notePlayer[1].play(notes[random(N_NOTES)]);    
-      delay(200); 
+void playTheme(){
+  if (!p.tune_playing) {
+      p.tune_playscore(avengers);
   }
 }
 
 void raiseHell(){
   checkAndAvoidObstacles();
-  int _direction = random(FORWARD, BACK+1);
-  stopMove();
-  startMove(_direction);
-  playNightmareFuel();
+  moveRandomly();
+  playTheme();
 }
 
 void loop() {
-  if (alarmSet){
-    checkAlarm();
-  }
+  checkAlarm();
   if (mode == ANARCHY_MODE) {
     raiseHell();
   }
