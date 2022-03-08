@@ -32,7 +32,6 @@ import android.widget.Toast;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,21 +40,23 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
+    private final static String ARDUINO_DEVICE_NAME = "HC-06";
+
     private BluetoothAdapter bluetoothAdapter;
     private String deviceAddress;
-    private String ARDUINO_DEVICE_NAME = "HC-06";
 
     public static Handler handler;
     public static BluetoothSocket mmSocket;
     public static ConnectedThread connectedThread;
     public static CreateConnectThread createConnectThread;
 
-    private final static int CONNECTING_STATUS = 1; // used in bluetooth handler to identify message status
+    private final static int CONNECTING_STATUS = 1;
     private final static int CONNECTING_STATUS_SUCCESS = 1;
     private final static int CONNECTING_STATUS_FAILURE = -1;
-    private final static int MESSAGE_READ = 2; // used in bluetooth handler to identify message update
+    private final static int CONNECTING_STATUS_TERMINATED = 0;
 
     private Map<ImageButton, Command> buttonCommandMap;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
                 connectedThread.writeCommand(isChecked ?
                         Command.CreateSetModeAnarchyCommand() :
                         Command.CreateSetModeRemoteControlCommand()
-
                 );
             }
         });
@@ -179,24 +179,31 @@ public class MainActivity extends AppCompatActivity {
                             case CONNECTING_STATUS_SUCCESS:
                                 MainActivity.this.notify("Status", "Device connected");
                                 progressBar.setVisibility(View.GONE);
-                                bluethoothConnectButton.setEnabled(false);
-                                modeToggleSwitch.setEnabled(true);
-                                alarmToggleSwitch.setEnabled(true);
-                                alarmTimePicker.setEnabled(true);
-                                connectedText.setVisibility(View.VISIBLE);
-                                for (ImageButton imageButton: buttonCommandMap.keySet()) {
-                                    imageButton.setEnabled(true);
-                                }
+                                toggleControls(true);
                                 break;
                             case CONNECTING_STATUS_FAILURE:
                                 MainActivity.this.notify("Status", "Device fails to connect");
                                 progressBar.setVisibility(View.GONE);
-                                bluethoothConnectButton.setVisibility(View.VISIBLE);
-                                bluethoothConnectButton.setEnabled(true);
+                                toggleControls(false);
+                                break;
+                            case CONNECTING_STATUS_TERMINATED:
+                                MainActivity.this.notify("Status", "Device connection closed");
+                                toggleControls(false);
                                 break;
                         }
                         break;
+                }
+            }
 
+            private void toggleControls(boolean deviceConnected) {
+                modeToggleSwitch.setEnabled(deviceConnected);
+                alarmToggleSwitch.setEnabled(deviceConnected);
+                alarmTimePicker.setEnabled(deviceConnected);
+                bluethoothConnectButton.setEnabled(!deviceConnected);
+                bluethoothConnectButton.setVisibility(deviceConnected ?  View.GONE: View.VISIBLE);
+                connectedText.setVisibility(deviceConnected ? View.VISIBLE : View.GONE);
+                for (ImageButton imageButton: buttonCommandMap.keySet()) {
+                    imageButton.setEnabled(deviceConnected);
                 }
             }
         };
@@ -204,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void connectToDevice(String address) {
-        createConnectThread = new CreateConnectThread(bluetoothAdapter, deviceAddress);
+        createConnectThread = new CreateConnectThread(bluetoothAdapter, address);
         createConnectThread.start();
     }
 
@@ -221,14 +228,8 @@ public class MainActivity extends AppCompatActivity {
             UUID uuid = bluetoothDevice.getUuids()[0].getUuid();
 
             try {
-                /*
-                Get a BluetoothSocket to connect with the given BluetoothDevice.
-                Due to Android device varieties,the method below may not work fo different devices.
-                You should try using other methods i.e. :
-                tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
-                 */
+                // Get a BluetoothSocket to connect with the given BluetoothDevice.
                 tmp = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(uuid);
-
             } catch (IOException e) {
                 Log.e(TAG, "Socket's create() method failed", e);
             }
@@ -238,13 +239,9 @@ public class MainActivity extends AppCompatActivity {
         @SuppressLint("MissingPermission")
         public void run() {
             // Cancel discovery because it otherwise slows down the connection.
-            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
             bluetoothAdapter.cancelDiscovery();
             try {
-                // Connect to the remote device through the socket. This call blocks
-                // until it succeeds or throws an exception.
-                mmSocket.connect();
-//                MainActivity.this.notify("Status", "Device connected");
+                mmSocket.connect(); //blocking call
                 handler.obtainMessage(CONNECTING_STATUS, CONNECTING_STATUS_SUCCESS, 0).sendToTarget();
             } catch (IOException connectException) {
                 // Unable to connect; close the socket and return.
@@ -273,31 +270,26 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
     /* =============================== Thread for Data Transfer =========================================== */
     public class ConnectedThread extends Thread {
 
         private final BluetoothSocket mmSocket;
-        private final InputStream mmInStream;
         private final OutputStream mmOutStream;
 
         public ConnectedThread(BluetoothSocket socket) {
             mmSocket = socket;
-            InputStream tmpIn = null;
             OutputStream tmpOut = null;
 
-            // Get the input and output streams, using temp objects because member streams are final
+            // Get the output stream, using temp objects because member streams are final
             try {
-                tmpIn = socket.getInputStream();
                 tmpOut = socket.getOutputStream();
             } catch (IOException e) { }
 
-            mmInStream = tmpIn;
             mmOutStream = tmpOut;
         }
 
-        public void run() {
-
-        }
+        public void run() { }
 
         /* Call this to send data to the remote device */
         public void writeCommand(Command command) {
@@ -306,6 +298,7 @@ public class MainActivity extends AppCompatActivity {
                 mmOutStream.write(bytes);
             } catch (IOException e) {
                 handleError("Send Error","Unable to send message",e);
+                cancel();
             }
         }
 
@@ -313,6 +306,7 @@ public class MainActivity extends AppCompatActivity {
         public void cancel() {
             try {
                 mmSocket.close();
+                handler.obtainMessage(CONNECTING_STATUS, CONNECTING_STATUS_TERMINATED, CONNECTING_STATUS_TERMINATED).sendToTarget();
             } catch (IOException e) { }
         }
     }
