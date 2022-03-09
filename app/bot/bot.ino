@@ -290,7 +290,7 @@ void setup() {
 
 void playTheme(){
   if (!p.tune_playing) {
-      p.tune_playscore(avengers);
+      p.tune_playscore(getRandomTheme());
   }
 }
 

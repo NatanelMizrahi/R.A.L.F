@@ -1,8 +1,12 @@
+// https://github.com/LenShustek/arduino-playtune
+// https://github.com/lenshustek/miditones
+
 #ifndef THEME_H_
 #define THEME_H_
 
+#include <Arduino.h>
 #include <Playtune.h>
 
-extern const byte PROGMEM avengers[];
+extern byte* getRandomTheme();
 
 #endif
