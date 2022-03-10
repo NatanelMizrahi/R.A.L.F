@@ -13,16 +13,21 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.ClipData;
+import android.content.ClipDescription;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+import android.view.DragEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -57,6 +62,11 @@ public class MainActivity extends AppCompatActivity {
 
     private Map<ImageButton, Command> buttonCommandMap;
 
+    private static float joyStickInitCenterX;
+    private static float joyStickInitCenterY;
+    private int joyStickDeltaX;
+    private int joyStickDeltaY;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,14 +77,159 @@ public class MainActivity extends AppCompatActivity {
         final ProgressBar progressBar = findViewById(R.id.progressBar);
         final TextView connectedText = findViewById(R.id.connectedText);
 
-        final ImageButton forwardButton = findViewById(R.id.forwardButton);
-        final ImageButton backButton = findViewById(R.id.backButton);
-        final ImageButton leftButton = findViewById(R.id.leftButton);
-        final ImageButton rightButton = findViewById(R.id.RightButton);
 
         final Switch modeToggleSwitch = findViewById(R.id.modeToggleSwitch);
         final Switch alarmToggleSwitch = findViewById(R.id.alarmToggleSwitch);
 
+        final ImageView joyStick = findViewById(R.id.joyStick);
+        final ImageView joyStickBoundaries = findViewById(R.id.joyStickBoundaries);
+
+        final TextView testJoystickText = findViewById(R.id.testJoystickText);
+        int[] initXY = new int[2];
+        joyStick.getLocationOnScreen(initXY);
+        joyStick.measure(0,0);
+        joyStickInitCenterX = joyStick.getLeft() + joyStick.getMeasuredWidth()  / 2;
+        joyStickInitCenterY = joyStick.getTop() + joyStick.getMeasuredHeight() / 2;
+
+        joyStick.setOnTouchListener( (v,e) -> {
+
+            // Create a new ClipData.
+            // This is done in two steps to provide clarity. The convenience method
+            // ClipData.newPlainText() can create a plain text ClipData in one step.
+
+            // Create a new ClipData.Item from the ImageView object's tag.
+            ClipData.Item item = new ClipData.Item((CharSequence) v.getTag());
+
+            // Create a new ClipData using the tag as a label, the plain text MIME type, and
+            // the already-created item. This creates a new ClipDescription object within the
+            // ClipData and sets its MIME type to "text/plain".
+            ClipData dragData = new ClipData(
+                    (CharSequence) v.getTag(),
+                    new String[] { ClipDescription.MIMETYPE_TEXT_PLAIN },
+                    item);
+
+            // Instantiate the drag shadow builder.
+//            View.DragShadowBuilder myShadow = new MyDragShadowBuilder(joyStick);
+            View.DragShadowBuilder myShadow = new View.DragShadowBuilder(joyStick);
+
+            // Start the drag.
+            v.startDragAndDrop(dragData,  // The data to be dragged
+                    myShadow,  // The drag shadow builder
+                    null,      // No need to use local data
+                    0          // Flags (not currently used, set to 0)
+            );
+
+            // Indicate that the long-click was handled.
+            return true;
+        });
+// Set the drag event listener for the View.
+        joyStick.setOnDragListener( (v, e) -> {
+
+            // Handles each of the expected events.
+            switch(e.getAction()) {
+
+                case DragEvent.ACTION_DRAG_STARTED:
+                    joyStick.measure(0,0);
+                    joyStickInitCenterX = joyStick.getLeft() + joyStick.getMeasuredWidth()  / 2;
+                    joyStickInitCenterY = joyStick.getTop() + joyStick.getMeasuredHeight() / 2;
+
+                    // Determines if this View can accept the dragged data.
+                    if (e.getClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)) {
+
+                        // As an example of what your application might do, applies a blue color tint
+                        // to the View to indicate that it can accept data.
+                        ((ImageView)v).setColorFilter(Color.BLUE);
+
+                        // Invalidate the view to force a redraw in the new tint.
+                        v.invalidate();
+
+                        // Returns true to indicate that the View can accept the dragged data.
+                        return true;
+
+                    }
+
+                    // Returns false to indicate that, during the current drag and drop operation,
+                    // this View will not receive events again until ACTION_DRAG_ENDED is sent.
+                    return false;
+
+                case DragEvent.ACTION_DRAG_ENTERED:
+
+                    // Applies a green tint to the View.
+                    ((ImageView)v).setColorFilter(Color.GREEN);
+
+                    // Invalidates the view to force a redraw in the new tint.
+                    v.invalidate();
+
+                    // Returns true; the value is ignored.
+                    return true;
+
+                case DragEvent.ACTION_DRAG_LOCATION:
+                    joyStickDeltaX = (int) e.getX(); // - joyStickInitCenterX;
+                    joyStickDeltaY = (int) e.getY(); // - joyStickInitCenterY;
+                    testJoystickText.setText("(" + joyStickInitCenterX + ", " + joyStickInitCenterY + ")" + "(" + joyStickDeltaX + ", " + joyStickDeltaY + ")");
+                    return true;
+
+                case DragEvent.ACTION_DRAG_EXITED:
+
+                    // Resets the color tint to blue.
+                    ((ImageView)v).setColorFilter(Color.BLUE);
+
+                    // Invalidates the view to force a redraw in the new tint.
+                    v.invalidate();
+
+                    // Returns true; the value is ignored.
+                    return true;
+
+                case DragEvent.ACTION_DROP:
+
+                    // Gets the item containing the dragged data.
+                    ClipData.Item item = e.getClipData().getItemAt(0);
+
+                    // Gets the text data from the item.
+                    CharSequence dragData = item.getText();
+
+                    // Displays a message containing the dragged data.
+                    Toast.makeText(this, "Dragged data is " + dragData, Toast.LENGTH_LONG).show();
+
+                    // Turns off any color tints.
+                    ((ImageView)v).clearColorFilter();
+
+                    // Invalidates the view to force a redraw.
+                    v.invalidate();
+
+                    // Returns true. DragEvent.getResult() will return true.
+                    return true;
+
+                case DragEvent.ACTION_DRAG_ENDED:
+
+                    // Turns off any color tinting.
+                    ((ImageView)v).clearColorFilter();
+
+                    // Invalidates the view to force a redraw.
+                    v.invalidate();
+                    joyStickDeltaX = 0;
+                    joyStickDeltaY = 0;
+                    testJoystickText.setText("(" + joyStickInitCenterX + ", " + joyStickInitCenterY + ")" + "(" + joyStickDeltaX + ", " + joyStickDeltaY + ")");
+
+                    // Does a getResult(), and displays what happened.
+                    if (e.getResult()) {
+                        Toast.makeText(this, "The drop was handled.", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(this, "The drop didn't work.", Toast.LENGTH_LONG).show();
+                    }
+
+                    // Returns true; the value is ignored.
+                    return true;
+
+                // An unknown action type was received.
+                default:
+                    Log.e("DragDrop Example","Unknown action type received by View.OnDragListener.");
+                    break;
+            }
+
+            return false;
+
+        });
         modeToggleSwitch.setEnabled(false);
         alarmToggleSwitch.setEnabled(false);
 
@@ -89,10 +244,6 @@ public class MainActivity extends AppCompatActivity {
 
         buttonCommandMap = new HashMap<ImageButton, Command>();
 
-        buttonCommandMap.put(forwardButton, Command.CreateMoveCommand(Command.Direction.FORWARD));
-        buttonCommandMap.put(backButton, Command.CreateMoveCommand(Command.Direction.BACK));
-        buttonCommandMap.put(leftButton, Command.CreateMoveCommand(Command.Direction.LEFT));
-        buttonCommandMap.put(rightButton, Command.CreateMoveCommand(Command.Direction.RIGHT));
 
         for(Map.Entry<ImageButton, Command> buttonEntry : buttonCommandMap.entrySet()) {
             ImageButton button = buttonEntry.getKey();
@@ -351,3 +502,4 @@ public class MainActivity extends AppCompatActivity {
         startActivity(a);
     }
 }
+

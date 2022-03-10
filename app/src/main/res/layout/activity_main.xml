@@ -47,54 +47,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageButton
-        android:id="@+id/backButton"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginEnd="32dp"
-        android:layout_marginBottom="32dp"
-        android:background="@null"
-        android:scaleType="fitXY"
-        android:src="@android:drawable/ic_menu_more"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <ImageButton
-        android:id="@+id/forwardButton"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:background="@null"
-        android:rotationX="180"
-        android:scaleType="fitXY"
-        android:src="@android:drawable/ic_menu_more"
-        app:layout_constraintBottom_toTopOf="@+id/RightButton"
-        app:layout_constraintEnd_toStartOf="@+id/RightButton"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toEndOf="@+id/leftButton" />
-
-    <ImageButton
-        android:id="@+id/leftButton"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:background="@null"
-        android:rotationY="180"
-        android:scaleType="fitXY"
-        android:src="@android:drawable/ic_menu_rotate"
-        app:layout_constraintBottom_toTopOf="@+id/backButton"
-        app:layout_constraintEnd_toStartOf="@+id/backButton" />
-
-    <ImageButton
-        android:id="@+id/RightButton"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:background="@null"
-        android:scaleType="fitXY"
-        android:src="@android:drawable/ic_menu_rotate"
-        app:layout_constraintBottom_toTopOf="@+id/backButton"
-        app:layout_constraintStart_toEndOf="@+id/backButton" />
-
     <Switch
         android:id="@+id/modeToggleSwitch"
         android:layout_width="129dp"
@@ -122,5 +74,34 @@
         android:text="Alarm Set"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/modeToggleSwitch" />
+
+    <ImageView
+        android:id="@+id/joyStick"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        app:layout_constraintBottom_toBottomOf="@+id/joyStickBoundaries"
+        app:layout_constraintEnd_toEndOf="@+id/joyStickBoundaries"
+        app:layout_constraintHorizontal_bias="0.493"
+        app:layout_constraintStart_toStartOf="@+id/joyStickBoundaries"
+        app:layout_constraintTop_toTopOf="@+id/joyStickBoundaries"
+        app:layout_constraintVertical_bias="0.445"
+        app:srcCompat="@android:drawable/radiobutton_off_background" />
+
+    <ImageView
+        android:id="@+id/joyStickBoundaries"
+        android:layout_width="380dp"
+        android:layout_height="380dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@android:drawable/btn_radio" />
+
+    <TextView
+        android:id="@+id/testJoystickText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="(0,0)"
+        app:layout_constraintEnd_toEndOf="@+id/modeToggleSwitch"
         app:layout_constraintTop_toBottomOf="@+id/modeToggleSwitch" />
 </androidx.constraintlayout.widget.ConstraintLayout>
