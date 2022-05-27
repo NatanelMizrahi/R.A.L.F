@@ -8,7 +8,6 @@ import java.util.Date;
 public class Command {
     public enum CommandType {
         MOVE,
-        STOP,
         SET_MODE,
         SET_ALARM,
         DISABLE_ALARM
@@ -21,7 +20,8 @@ public class Command {
         FORWARD, // 0
         LEFT,    // 1
         RIGHT,   // 2
-        BACK,    // 3
+        REVERSE, // 3
+        STOP    // 4
     }
 
     private CommandType commandType;
@@ -60,7 +60,7 @@ public class Command {
     }
 
     public static Command CreateStopCommand(){
-        return new Command(CommandType.STOP, (byte) 0, 0);
+        return new Command(CommandType.MOVE, (byte) Direction.STOP.ordinal(), 0);
     }
 
     public static Command CreateDisableAlarmCommand(){ return new Command(CommandType.DISABLE_ALARM, (byte) 0, 0); }
