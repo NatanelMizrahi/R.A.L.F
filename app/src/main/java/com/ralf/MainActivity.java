@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
         buttonCommandMap = new HashMap<ImageButton, Command>();
 
         buttonCommandMap.put(forwardButton, Command.CreateMoveCommand(Command.Direction.FORWARD));
-        buttonCommandMap.put(backButton, Command.CreateMoveCommand(Command.Direction.BACK));
+        buttonCommandMap.put(backButton, Command.CreateMoveCommand(Command.Direction.REVERSE));
         buttonCommandMap.put(leftButton, Command.CreateMoveCommand(Command.Direction.LEFT));
         buttonCommandMap.put(rightButton, Command.CreateMoveCommand(Command.Direction.RIGHT));
 
