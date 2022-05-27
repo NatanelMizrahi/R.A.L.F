@@ -3,43 +3,51 @@
 
 Playtune p;
 
-int tone_chan1_pin = 13;
-int tone_chan2_pin = A1;
+int tone_chan1_pin = A1;
+int tone_chan2_pin = A2;
 int tone_chan3_pin = A3;
 
 typedef enum {
-    MOVE,
-    STOP,
-    SET_MODE,
-    SET_ALARM,
-    DISABLE_ALARM
+  MOVE,
+  SET_MODE,
+  SET_ALARM,
+  DISABLE_ALARM
 } command_type_t;
 
 typedef struct {
-    unsigned char command_type;
-    unsigned char op_code;
-    short value;
+  unsigned char command_type;
+  unsigned char op_code;
+  short value;
 } cmd_t;
 
 int cmdSize = sizeof(cmd_t);
 
 typedef enum {
-    ANARCHY_MODE,
-    REMOTE_CONTROL_MODE
+  ANARCHY_MODE,
+  REMOTE_CONTROL_MODE
 } operation_mode_t;
 
 typedef enum {
-    FORWARD = 0,
-    LEFT = 1,
-    RIGHT = 2,
-    BACK = 3,
+  FORWARD = 0,
+  LEFT = 1,
+  RIGHT = 2,
+  REVERSE = 3,
+  STOP = 4
 } direction_t;
 
+int direction_control_pin_values[5][4] = {
+// A1 A2 B1 B2
+  {1, 0, 1, 0}, // forward
+  {1, 0, 0, 1}, // left
+  {0, 1, 1, 0}, // right
+  {0, 1, 0, 1}, // reverse
+  {0, 0, 0, 0}  // stop
+};
 
 int speakerPin = 13;
 
-int sensorTrigPin = 12;
-int sensorEchoPin = 11;
+int sensorTrigPin = 8;
+int sensorEchoPin = 7;
 
 int minMoveDuration = 700;
 int maxMoveDuration = 2500;
@@ -60,91 +68,24 @@ int ignoreCommands = 0;
 
 unsigned long alarmTimeMillis;
 
-/*
-// Each motor (left/right) has the following control sub-circuit
-Ci represents an NPN junction where the base is connected to the corresponding pin.
-
--------- Vcc(+) ---------
-|                       |
-C2                      C0
-|                       |
----------(Motor)--------|
-|                       |
-C1                      C3
-|                       |
--------- Gnd(-) ---------
-
-Therefore:
-C0 + C1 -> Motor rotates clockwise
-C2 + C3 -> Motor rotates counter-clockwise
-*/
-
 typedef int bit_vec_t;
 
-#define CTRL_PIN_OFFSET_LEFT_MOTOR 7
-#define CTRL_PIN_OFFSET_RIGHT_MOTOR 3
-#define CTRL_PIN_MAX_INDEX 10
-#define CTRL_PIN_MIN_INDEX 3
+#define MOTOR_CTRL_PIN_OFFSET 3
+#define NUM_MOTOR_CTRL_PINS 4
 
-bit_vec_t CTRL_PIN_LEFT_C0 = 1 << (CTRL_PIN_OFFSET_LEFT_MOTOR + 0);
-bit_vec_t CTRL_PIN_LEFT_C1 = 1 << (CTRL_PIN_OFFSET_LEFT_MOTOR + 1);
-bit_vec_t CTRL_PIN_LEFT_C2 = 1 << (CTRL_PIN_OFFSET_LEFT_MOTOR + 2);
-bit_vec_t CTRL_PIN_LEFT_C3 = 1 << (CTRL_PIN_OFFSET_LEFT_MOTOR + 3);
-
-bit_vec_t CTRL_PIN_RIGHT_C0 = 1 << (CTRL_PIN_OFFSET_RIGHT_MOTOR + 0);
-bit_vec_t CTRL_PIN_RIGHT_C1 = 1 << (CTRL_PIN_OFFSET_RIGHT_MOTOR + 1);
-bit_vec_t CTRL_PIN_RIGHT_C2 = 1 << (CTRL_PIN_OFFSET_RIGHT_MOTOR + 2);
-bit_vec_t CTRL_PIN_RIGHT_C3 = 1 << (CTRL_PIN_OFFSET_RIGHT_MOTOR + 3);
-
-// initialized in init_direction_pins
-bit_vec_t DIRECTION_CTRL_PINS;
-bit_vec_t   DIRECTION_FORWARD_CTRL_PINS,
-      DIRECTION_BACK_CTRL_PINS,
-      DIRECTION_LEFT_CTRL_PINS,
-      DIRECTION_RIGHT_CTRL_PINS;
-
-bit_vec_t direction_to_bit_vector[4];
-
-void init_direction_pins(){
-    bit_vec_t LEFT_BACKWARD_CTRL_PINS = (CTRL_PIN_LEFT_C0 | CTRL_PIN_LEFT_C1);
-    bit_vec_t RIGHT_BACKWARD_CTRL_PINS = (CTRL_PIN_RIGHT_C0 | CTRL_PIN_RIGHT_C1);
-    bit_vec_t LEFT_FORWARD_CTRL_PINS = (CTRL_PIN_LEFT_C2 | CTRL_PIN_LEFT_C3);
-    bit_vec_t RIGHT_FORWARD_CTRL_PINS = (CTRL_PIN_RIGHT_C2 | CTRL_PIN_RIGHT_C3);
-    
-    DIRECTION_FORWARD_CTRL_PINS = LEFT_FORWARD_CTRL_PINS | RIGHT_FORWARD_CTRL_PINS;
-    DIRECTION_BACK_CTRL_PINS = LEFT_BACKWARD_CTRL_PINS | RIGHT_BACKWARD_CTRL_PINS;
-    DIRECTION_LEFT_CTRL_PINS = LEFT_BACKWARD_CTRL_PINS | RIGHT_FORWARD_CTRL_PINS;
-    DIRECTION_RIGHT_CTRL_PINS = LEFT_FORWARD_CTRL_PINS | RIGHT_BACKWARD_CTRL_PINS;
-
-    DIRECTION_CTRL_PINS = DIRECTION_FORWARD_CTRL_PINS | DIRECTION_BACK_CTRL_PINS | DIRECTION_LEFT_CTRL_PINS | DIRECTION_RIGHT_CTRL_PINS;
-
-    direction_to_bit_vector[FORWARD] = DIRECTION_FORWARD_CTRL_PINS;
-    direction_to_bit_vector[BACK] = DIRECTION_BACK_CTRL_PINS;
-    direction_to_bit_vector[LEFT] = DIRECTION_LEFT_CTRL_PINS;
-    direction_to_bit_vector[RIGHT] = DIRECTION_RIGHT_CTRL_PINS;
-
-    for (int pin = CTRL_PIN_MIN_INDEX; pin <= CTRL_PIN_MAX_INDEX; pin++) {
-        if ((1 << pin) & DIRECTION_CTRL_PINS) {
-            pinMode(pin, OUTPUT);
-        }
-    }
+void init_direction_pins() {
+  for (int pin = MOTOR_CTRL_PIN_OFFSET; pin < MOTOR_CTRL_PIN_OFFSET + NUM_MOTOR_CTRL_PINS; pin++)
+    pinMode(pin, OUTPUT);
 }
 
-void write_direction_pins(bit_vec_t ctrl_pin_bit_vector, int val){
-    for (int pin = CTRL_PIN_MIN_INDEX; pin <= CTRL_PIN_MAX_INDEX; pin++) {
-        if ((1 << pin) & ctrl_pin_bit_vector) {
-            digitalWrite(pin, val);
-        }
-    }
-}
-
-
-void startMove(int _direction) {
-  write_direction_pins(direction_to_bit_vector[_direction], HIGH);
+void startMove(direction_t _direction) {
+  int* direction_controls_values = direction_control_pin_values[_direction];
+  for(int pin = 0; pin < NUM_MOTOR_CTRL_PINS; pin++) 
+    digitalWrite(MOTOR_CTRL_PIN_OFFSET + pin, direction_controls_values[pin]);
 }
 
 void stopMove() {
-  write_direction_pins(DIRECTION_CTRL_PINS, LOW);
+  startMove(STOP);
 }
 
 void move(int _direction, int duration) {
@@ -153,14 +94,14 @@ void move(int _direction, int duration) {
   stopMove();
 }
 
-void moveRandomly(){
+void moveRandomly() {
   if (hasObstacle) return;
-  int _direction = random(FORWARD, BACK+1);
+  int _direction = random(FORWARD, REVERSE + 1);
   int _duration = random(minMoveDuration, maxMoveDuration);
   move(_direction, _duration);
 }
 
-void avoidObstacle(){
+void avoidObstacle() {
   hasObstacle = 1;
   move(avoidObstacleDirection, avoidObstacleTurnDuration);
 }
@@ -186,8 +127,8 @@ void checkAndAvoidObstacles() {
   durationUs = pulseIn(sensorEchoPin, HIGH);
 
   // Convert the time into a distance
-  distCentimeters = (durationUs/2) * 0.0343;
-  if (distCentimeters < minAllowedDistCm){
+  distCentimeters = (durationUs / 2) * 0.0343;
+  if (distCentimeters < minAllowedDistCm) {
     avoidObstacle();
   }
   else {
@@ -195,22 +136,23 @@ void checkAndAvoidObstacles() {
   }
 }
 
-void smartDelay(int ms){
-  if (mode == ANARCHY_MODE){
-      p.tune_delay(ms);    
+void smartDelay(int ms) {
+  if (mode == ANARCHY_MODE) {
+    p.tune_delay(ms);
   } else {
-      delay(ms);
+    delay(ms);
   }
 }
-void set_mode(operation_mode_t _mode){
-   stopMove();
-   if (_mode == ANARCHY_MODE){
-      init_tone_channels();
-   } else {
-      p.tune_stopscore();
-      p.tune_stopchans();
-   }
-   mode = _mode;
+
+void set_mode(operation_mode_t _mode) {
+  stopMove();
+  if (_mode == ANARCHY_MODE) {
+    init_tone_channels();
+  } else {
+    p.tune_stopscore();
+    p.tune_stopchans();
+  }
+  mode = _mode;
 }
 
 void readCommand() {
@@ -221,80 +163,78 @@ void readCommand() {
 //    sprintf(buffer, "[buffer: %x][command_type: %d][op_code: %d][value: %d]", (*(int*)&command), command.command_type, command.op_code, command.value);
 //    Serial.println(buffer);
     switch (command.command_type) {
-        case SET_MODE:
-            set_mode(command.op_code);
-            break;
-        case MOVE:
-             if (mode == ANARCHY_MODE)
-                return;
-             stopMove();
-             delayMicroseconds(5);
-             startMove(command.op_code);
-             break;
-        case STOP:
-            if (mode == ANARCHY_MODE)
-                return;
-            stopMove();
-            break;
-        case SET_ALARM:
-            setAlarm(command.value);
-            break;
-        case DISABLE_ALARM:
-            disableAlarm();
-            break;
+      case SET_MODE:
+        set_mode(command.op_code);
+        break;
+      case MOVE:
+        if (mode == ANARCHY_MODE)
+          return;
+        stopMove();
+        delayMicroseconds(5);
+        startMove(command.op_code);
+        break;
+      case SET_ALARM:
+        setAlarm(command.value);
+        break;
+      case DISABLE_ALARM:
+        disableAlarm();
+        break;
     }
   }
 }
 
-void setAlarm(short alarmDeltaMinutes){
+void setAlarm(short alarmDeltaMinutes) {
   alarmTimeMillis = millis() + (unsigned long)(alarmDeltaMinutes) * 60 * 1000;
   alarmSet = 1;
+  char buffer[40];
+  sprintf(buffer, "[alarmDeltaMinutes: %d][alarmTimeMillis: %lu]", alarmDeltaMinutes, alarmTimeMillis);
+  Serial.println(buffer);
 }
-void disableAlarm(){
+
+void disableAlarm() {
   alarmSet = 0;
 }
-void activateAlarm(){
+
+void activateAlarm() {
   alarmSet = 0;
   ignoreCommands = 1;
   set_mode(ANARCHY_MODE);
 }
 
-void checkAlarm(){
-    if (!alarmSet){
-      return;
-    }
-    unsigned long currTimeMillis = millis();
-    if (currTimeMillis > alarmTimeMillis) {
-      activateAlarm();
-    }
-    smartDelay(2000);
+void checkAlarm() {
+  if (!alarmSet) {
+    return;
+  }
+  unsigned long currTimeMillis = millis();
+  if (currTimeMillis > alarmTimeMillis) {
+    activateAlarm();
+  }
+  smartDelay(2000);
 }
 
-void init_tone_channels(){
-    p.tune_initchan(tone_chan1_pin);
-    p.tune_initchan(tone_chan2_pin);
-    p.tune_initchan(tone_chan3_pin);
+void init_tone_channels() {
+  p.tune_initchan(tone_chan1_pin);
+  p.tune_initchan(tone_chan2_pin);
+  p.tune_initchan(tone_chan3_pin);
 }
 
 
 void setup() {
   init_direction_pins();
   // init_tone_channels();
-  
+
   pinMode(sensorTrigPin, OUTPUT);
   pinMode(sensorEchoPin, INPUT);
-  pinMode(speakerPin, OUTPUT);
-
   Serial.begin(9600);
 }
 
-void playTheme(){
+void playTheme() {
   if (!p.tune_playing) {
-      p.tune_playscore(getRandomTheme());
+    p.tune_playscore(getRandomTheme());
   }
 }
 
-void raiseHell(){
+void raiseHell() {
   checkAndAvoidObstacles();
   moveRandomly();
   playTheme();
@@ -304,6 +244,6 @@ void loop() {
   checkAlarm();
   if (mode == ANARCHY_MODE) {
     raiseHell();
-  }
+  }    
   readCommand();
 }
