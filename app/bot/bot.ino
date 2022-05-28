@@ -5,7 +5,7 @@ Playtune p;
 
 int tone_chan1_pin = A1;
 int tone_chan2_pin = A2;
-int tone_chan3_pin = A3;
+int tone_chan3_pin = 13;
 
 typedef enum {
   MOVE,
@@ -49,8 +49,8 @@ int speakerPin = 13;
 int sensorTrigPin = 8;
 int sensorEchoPin = 7;
 
-int minMoveDuration = 700;
-int maxMoveDuration = 2500;
+int minMoveDuration = 1000;
+int maxMoveDuration = 3000;
 int hasObstacle = 0;
 
 long distCentimeters;
@@ -70,7 +70,7 @@ unsigned long alarmTimeMillis;
 
 typedef int bit_vec_t;
 
-#define MOTOR_CTRL_PIN_OFFSET 3
+#define MOTOR_CTRL_PIN_OFFSET A3
 #define NUM_MOTOR_CTRL_PINS 4
 
 void init_direction_pins() {
@@ -81,7 +81,7 @@ void init_direction_pins() {
 void startMove(direction_t _direction) {
   int* direction_controls_values = direction_control_pin_values[_direction];
   for(int pin = 0; pin < NUM_MOTOR_CTRL_PINS; pin++) 
-    digitalWrite(MOTOR_CTRL_PIN_OFFSET + pin, direction_controls_values[pin]);
+    analogWrite(MOTOR_CTRL_PIN_OFFSET + pin, direction_controls_values[pin] * 255);
 }
 
 void stopMove() {
