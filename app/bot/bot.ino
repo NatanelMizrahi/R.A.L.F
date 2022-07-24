@@ -70,7 +70,9 @@ unsigned long alarmTimeMillis;
 
 typedef int bit_vec_t;
 
-#define MOTOR_CTRL_PIN_OFFSET A3
+int isAnalog = 0;
+int MOTOR_CTRL_PIN_OFFSET = (isAnalog ? A3: 3); 
+
 #define NUM_MOTOR_CTRL_PINS 4
 
 void init_direction_pins() {
@@ -80,8 +82,12 @@ void init_direction_pins() {
 
 void startMove(direction_t _direction) {
   int* direction_controls_values = direction_control_pin_values[_direction];
-  for(int pin = 0; pin < NUM_MOTOR_CTRL_PINS; pin++) 
-    analogWrite(MOTOR_CTRL_PIN_OFFSET + pin, direction_controls_values[pin] * 255);
+  for(int pin = 0; pin < NUM_MOTOR_CTRL_PINS; pin++){
+    if (isAnalog)
+      analogWrite(MOTOR_CTRL_PIN_OFFSET + pin, direction_controls_values[pin] * 255);
+    else
+      digitalWrite(MOTOR_CTRL_PIN_OFFSET + pin, direction_controls_values[pin]);
+  }   
 }
 
 void stopMove() {
