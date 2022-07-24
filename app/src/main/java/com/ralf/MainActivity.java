@@ -7,13 +7,16 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -312,7 +315,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void notify(String tag, String msg){
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        runOnUiThread(() ->Toast.makeText(this, msg, Toast.LENGTH_SHORT).show());
         Log.e(tag, msg);
     }
 
@@ -323,6 +326,17 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("MissingPermission")
     private void connectToArduino() {
+        if (
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{
+                            "android.permission.BLUETOOTH_CONNECT",
+                            "android.permission.BLUETOOTH_SCAN"
+                    },
+            0);
+        }
          Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
         if (pairedDevices.size() > 0) {
             // There are paired devices. Get the name and address of each paired device.
